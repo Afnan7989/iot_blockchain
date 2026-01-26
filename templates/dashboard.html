@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="text-center mb-5">
+    <h1 class="fw-bold">IoT Blockchain Dashboard</h1>
+    <p class="text-light">
+        Secure, immutable, and transparent IoT data transactions using blockchain technology
+    </p>
+</div>
+
+<div class="row justify-content-center g-4">
+
+    <div class="col-md-5">
+        <div class="card p-4 text-center">
+            <i class="bi bi-database-fill fs-1 mb-3"></i>
+            <h3>Data Storage</h3>
+            <p>Store IoT sensor data securely on blockchain</p>
+            <a href="{% url 'data_storage' %}" class="btn btn-custom mt-3">
+                Go to Storage
+            </a>
+        </div>
+    </div>
+
+    <div class="col-md-5">
+        <div class="card p-4 text-center">
+            <i class="bi bi-table fs-1 mb-3"></i>
+            <h3>Data Access</h3>
+            <p>View, update, and verify stored blockchain data</p>
+            <a href="{% url 'data_access' %}" class="btn btn-custom mt-3">
+                Go to Records
+            </a>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

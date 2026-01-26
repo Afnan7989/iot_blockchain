@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2 class="fw-bold mb-4 text-center">Stored IoT Data Records</h2>
+
+<div class="card p-4">
+    <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>IPFS CID</th>
+                    <th>Blockchain Tx</th>
+                    <th>Account</th>
+                    <th>Stored At</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for record in records %}
+                <tr>
+                    <td class="text-truncate" style="max-width:180px;">
+                        {{ record.ipfs_cid }}
+                    </td>
+
+                    <td class="text-truncate" style="max-width:160px;">
+                        {{ record.blockchain_tx }}
+                    </td>
+
+                    <td class="text-truncate" style="max-width:160px;">
+                        {{ record.blockchain_account }}
+                    </td>
+
+                    <td>{{ record.created_at|date:"Y-m-d H:i:s" }}</td>
+
+                    <td>
+                        <button
+                            class="btn btn-sm btn-info"
+                            onclick="openRecord('{{ record.ipfs_cid }}')">
+                            View
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted">
+                        No records found
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ================= MODAL ================= -->
+<div class="modal fade" id="recordModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content bg-dark text-light">
+
+            <div class="modal-header">
+                <h5 class="modal-title">IoT Record Verification</h5>
+                <button type="button"
+                        class="btn-close btn-close-white"
+                        data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+
+                <p id="verifyStatus" class="fw-bold mb-3"></p>
+
+                <h6>Blockchain Proof</h6>
+                <ul class="small">
+                    <li><b>IPFS CID:</b> <span id="cidField"></span></li>
+                    <li><b>Tx Hash:</b> <span id="txField"></span></li>
+                    <li><b>Account:</b> <span id="accountField"></span></li>
+                </ul>
+
+                <hr>
+
+                <h6>Encrypted Data (from IPFS)</h6>
+                <pre id="encryptedData"
+                     class="bg-black p-3 rounded small"></pre>
+
+                <hr>
+
+                <h6>Decrypted Data</h6>
+                <pre id="decryptedData"
+                     class="bg-black p-3 rounded small text-success"></pre>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-secondary"
+                        data-bs-dismiss="modal">
+                    Close
+                </button>
+
+                <button class="btn btn-success"
+                        onclick="decryptData()">
+                    Decrypt
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- ================= JAVASCRIPT ================= -->
+<script>
+let encryptedPayload = null;
+
+function openRecord(recordId) {
+    document.getElementById("verifyStatus").innerText = "Verifying CID on blockchain...";
+    document.getElementById("encryptedData").innerText = "";
+    document.getElementById("decryptedData").innerText = "";
+
+    fetch(`/view-record/${recordId}/`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                document.getElementById("verifyStatus").innerText = "❌ Verification Failed: " + data.error;
+                return;
+            }
+
+            document.getElementById("verifyStatus").innerText = "✔ Verified on blockchain";
+
+            encryptedPayload = data.encrypted_data;  // must match JsonResponse key
+
+            document.getElementById("cidField").innerText = data.cid;
+            document.getElementById("txField").innerText = data.tx_hash;
+            document.getElementById("accountField").innerText = data.account_address;
+
+            document.getElementById("encryptedData").innerText = JSON.stringify(encryptedPayload, null, 4);
+
+            new bootstrap.Modal(document.getElementById("recordModal")).show();
+        })
+        .catch(err => {
+            document.getElementById("verifyStatus").innerText = "❌ Error fetching record";
+        });
+}
+
+function decryptData() {
+    if (!encryptedPayload) return;
+
+    fetch(`/decrypt-record/`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: JSON.stringify(encryptedPayload)
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById("decryptedData").innerText = JSON.stringify(data, null, 4);
+    })
+    .catch(err => {
+        document.getElementById("decryptedData").innerText = "❌ Decryption failed";
+    });
+}
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Blockchain for Secure IoT Data Transaction</title>
+
+    <!-- Bootstrap 5 CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+
+    <style>
+        body {
+            background: linear-gradient(120deg, #0f2027, #203a43, #2c5364);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .navbar {
+            background: rgba(0, 0, 0, 0.7);
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.08);
+            border: none;
+            backdrop-filter: blur(10px);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            transition: 0.3s ease;
+        }
+
+        footer {
+            background: rgba(0, 0, 0, 0.7);
+            margin-top: auto;
+        }
+
+        .btn-custom {
+            background: #00c6ff;
+            border: none;
+            color: #000;
+            font-weight: 600;
+        }
+
+        .btn-custom:hover {
+            background: #0072ff;
+            color: #fff;
+        }
+    </style>
+</head>
+
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark px-4">
+    <a class="navbar-brand fw-bold" href="#">
+        <i class="bi bi-shield-lock-fill"></i>
+        Blockchain for Secure IoT Data Transaction
+    </a>
+
+    <div class="ms-auto">
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-light me-2">Dashboard</a>
+        <a href="{% url 'data_storage' %}" class="btn btn-outline-light me-2">Data Storage</a>
+        <a href="{% url 'data_access' %}" class="btn btn-outline-light">Data Access</a>
+    </div>
+</nav>
+
+<div class="container py-5">
+    {% block content %}
+    {% endblock %}
+</div>
+
+<footer class="text-center py-3">
+    <small>© 2026 Blockchain + IoT Proof of Concept | Secure Data Transactions</small>
+</footer>
+
+</body>
+</html>
