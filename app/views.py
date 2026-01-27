@@ -58,49 +58,66 @@ def custom_data_storage(request):
     if request.method != "POST":
         return JsonResponse({"error": "Invalid request"}, status=400)
 
-    # 1. Read data from HTML form
-    sensor_data = {
-        "title": request.POST.get("custom_title"),
-        "temperature": float(request.POST.get("custom_temperature")),
-        "humidity": float(request.POST.get("custom_humidity")),
-        "air_pressure": float(request.POST.get("custom_pressure")),
-        "datetime": datetime.utcnow().isoformat(),
-    }
+    try:
+        # 1. Read data from HTML form
+        sensor_data = {
+            "title": request.POST.get("custom_title"),
+            "temperature": float(request.POST.get("custom_temperature")),
+            "humidity": float(request.POST.get("custom_humidity")),
+            "air_pressure": float(request.POST.get("custom_pressure")),
+            "datetime": datetime.utcnow().isoformat(),
+        }
 
-    # 2. Encrypt data
-    encrypted_payload = encrypt_json(sensor_data)
+        # 2. Encrypt data
+        encrypted_payload = encrypt_json(sensor_data)
 
-    # 3. Upload encrypted JSON to IPFS (Pinata)
-    ipfs_response = requests.post(
-        PINATA_URL,
-        headers=PINATA_HEADERS,
-        data=json.dumps(encrypted_payload),
-    )
+        # 3. Upload encrypted JSON to IPFS (Pinata)
+        ipfs_response = requests.post(
+            PINATA_URL,
+            headers=PINATA_HEADERS,
+            data=json.dumps(encrypted_payload),
+        )
 
-    if ipfs_response.status_code != 200:
-        return JsonResponse({"error": "IPFS upload failed"}, status=500)
+        if ipfs_response.status_code != 200:
+            return JsonResponse({"error": "IPFS upload failed"}, status=500)
 
-    cid = ipfs_response.json()["IpfsHash"]
-    print("CID:", cid)
+        cid = ipfs_response.json()["IpfsHash"]
+        print("CID:", cid)
 
-    # 4. Store CID on blockchain
-    bc_result = store_on_chain(cid)
-    print("Blockchain Result:", bc_result)
+        # 4. Store CID on blockchain
+        bc_result = store_on_chain(cid)
+        print("Blockchain Result:", bc_result)
 
-    end_time = time.perf_counter()
-    storage_time_taken = end_time - start_time
-    transaction_per_second = 1 / storage_time_taken if storage_time_taken > 0 else 0
+        end_time = time.perf_counter()
+        storage_time_taken = end_time - start_time
+        transaction_per_second = 1 / storage_time_taken if storage_time_taken > 0 else 0
 
-    # 5. Store ONLY references in DB
-    SensorRecord.objects.create(
-        ipfs_cid=cid,
-        blockchain_tx=bc_result["tx_hash"],
-        blockchain_account=bc_result["account_address"],
-        storage_time_taken=storage_time_taken,
-        transaction_per_second=transaction_per_second,
-    )
+        # 5. Store ONLY references in DB
+        record = SensorRecord.objects.create(
+            ipfs_cid=cid,
+            blockchain_tx=bc_result["tx_hash"],
+            blockchain_account=bc_result["account_address"],
+            storage_time_taken=storage_time_taken,
+            transaction_per_second=transaction_per_second,
+        )
 
-    return redirect("data_storage")
+        return JsonResponse({
+            "success": True,
+            "message": "Data stored successfully!",
+            "data": {
+                "sensor_data": sensor_data,
+                "ipfs_cid": cid,
+                "blockchain_tx": bc_result["tx_hash"],
+                "blockchain_account": bc_result["account_address"],
+                "storage_time_taken": round(storage_time_taken, 4),
+                "transaction_per_second": round(transaction_per_second, 2),
+            }
+        })
+    except Exception as e:
+        return JsonResponse({
+            "success": False,
+            "error": f"Failed to store data: {str(e)}"
+        }, status=500)
 
 # ------------------------------------------------------------------
 # RANDOM DATA GENERATOR (SIMULATED IOT)
@@ -124,52 +141,68 @@ def store_random_data(request):
     if request.method != "POST":
         return JsonResponse({"error": "Invalid request"}, status=400)
 
-    # 1. Generate random data (backend authoritative)
-    sensor_data = {
-        "title": f"IoT Sensor {random.randint(1, 100)}",
-        "temperature": round(random.uniform(20.0, 35.0), 2),
-        "humidity": round(random.uniform(40.0, 70.0), 2),
-        "air_pressure": round(random.uniform(980.0, 1050.0), 2),
-        "datetime": datetime.utcnow().isoformat(),
-    }
+    try:
+        # 1. Generate random data (backend authoritative)
+        sensor_data = {
+            "title": f"IoT Sensor {random.randint(1, 100)}",
+            "temperature": round(random.uniform(20.0, 35.0), 2),
+            "humidity": round(random.uniform(40.0, 70.0), 2),
+            "air_pressure": round(random.uniform(980.0, 1050.0), 2),
+            "datetime": datetime.utcnow().isoformat(),
+        }
 
-    # 2. Encrypt data
-    encrypted_payload = encrypt_json(sensor_data)
+        # 2. Encrypt data
+        encrypted_payload = encrypt_json(sensor_data)
 
-    # 3. Upload encrypted JSON to IPFS (Pinata)
-    ipfs_response = requests.post(
-        PINATA_URL,
-        headers={
-            "Content-Type": "application/json",
-            "pinata_api_key": PINATA_API_KEY,
-            "pinata_secret_api_key": PINATA_API_SECRET,
-        },
-        data=json.dumps(encrypted_payload),
-    )
+        # 3. Upload encrypted JSON to IPFS (Pinata)
+        ipfs_response = requests.post(
+            PINATA_URL,
+            headers={
+                "Content-Type": "application/json",
+                "pinata_api_key": PINATA_API_KEY,
+                "pinata_secret_api_key": PINATA_API_SECRET,
+            },
+            data=json.dumps(encrypted_payload),
+        )
 
-    if ipfs_response.status_code != 200:
-        return JsonResponse({"error": "IPFS upload failed"}, status=500)
+        if ipfs_response.status_code != 200:
+            return JsonResponse({"error": "IPFS upload failed"}, status=500)
 
-    cid = ipfs_response.json()["IpfsHash"]
+        cid = ipfs_response.json()["IpfsHash"]
 
-    # 4. Store CID on blockchain
-    bc_result = store_on_chain(cid)
+        # 4. Store CID on blockchain
+        bc_result = store_on_chain(cid)
 
-    end_time = time.perf_counter()
-    storage_time_taken = end_time - start_time
-    transaction_per_second = 1 / storage_time_taken if storage_time_taken > 0 else 0
+        end_time = time.perf_counter()
+        storage_time_taken = end_time - start_time
+        transaction_per_second = 1 / storage_time_taken if storage_time_taken > 0 else 0
 
-    # 5. Store ONLY references in DB
-    SensorRecord.objects.create(
-        ipfs_cid=cid.strip(),
-        blockchain_tx=bc_result["tx_hash"],
-        blockchain_account=bc_result["account_address"],
-        storage_time_taken=storage_time_taken,
-        transaction_per_second=transaction_per_second,
-    )
+        # 5. Store ONLY references in DB
+        record = SensorRecord.objects.create(
+            ipfs_cid=cid.strip(),
+            blockchain_tx=bc_result["tx_hash"],
+            blockchain_account=bc_result["account_address"],
+            storage_time_taken=storage_time_taken,
+            transaction_per_second=transaction_per_second,
+        )
 
-    # 6. Redirect back to storage page
-    return redirect("data_storage")
+        return JsonResponse({
+            "success": True,
+            "message": "Random data stored successfully!",
+            "data": {
+                "sensor_data": sensor_data,
+                "ipfs_cid": cid,
+                "blockchain_tx": bc_result["tx_hash"],
+                "blockchain_account": bc_result["account_address"],
+                "storage_time_taken": round(storage_time_taken, 4),
+                "transaction_per_second": round(transaction_per_second, 2),
+            }
+        })
+    except Exception as e:
+        return JsonResponse({
+            "success": False,
+            "error": f"Failed to store data: {str(e)}"
+        }, status=500)
 
 
 # ------------------------------------------------------------------
@@ -282,6 +315,8 @@ def view_record(request, cid):
         "cid": record.ipfs_cid,
         "tx_hash": record.blockchain_tx,
         "account_address": record.blockchain_account,
+        "access_time_taken": round(access_time_taken, 4),
+        "hash_matched": record.hash_matched,
     })
 
 # ------------------------------------------------------------------

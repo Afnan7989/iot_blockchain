@@ -107,40 +107,94 @@
 
 <!-- ================= JAVASCRIPT ================= -->
 <script>
+let currentRecordData = null;
 let encryptedPayload = null;
 
 function openRecord(recordId) {
-    document.getElementById("verifyStatus").innerText = "Verifying CID on blockchain...";
-    document.getElementById("encryptedData").innerText = "";
-    document.getElementById("decryptedData").innerText = "";
+    showLoadingPopup('Verifying Record');
 
     fetch(`/view-record/${recordId}/`)
         .then(res => res.json())
         .then(data => {
+            hideLoadingPopup();
             if (data.error) {
-                document.getElementById("verifyStatus").innerText = "❌ Verification Failed: " + data.error;
+                showPopup('error', 'Verification Failed', data.error);
                 return;
             }
 
-            document.getElementById("verifyStatus").innerText = "✔ Verified on blockchain";
+            currentRecordData = data;
+            encryptedPayload = data.encrypted_data;
 
-            encryptedPayload = data.encrypted_data;  // must match JsonResponse key
+            const blockchainData = {
+                'IPFS CID': data.cid,
+                'Blockchain TX': data.tx_hash,
+                'Account Address': data.account_address,
+            };
 
-            document.getElementById("cidField").innerText = data.cid;
-            document.getElementById("txField").innerText = data.tx_hash;
-            document.getElementById("accountField").innerText = data.account_address;
+            const encryptedDataStr = JSON.stringify(encryptedPayload, null, 2);
+            
+            showPopup('success', '✓ Verified on Blockchain', 'Record integrity verified. Click the action button to decrypt.', {
+                ...blockchainData,
+                'Encrypted Data': encryptedDataStr.substring(0, 100) + '...',
+            });
 
-            document.getElementById("encryptedData").innerText = JSON.stringify(encryptedPayload, null, 4);
-
-            new bootstrap.Modal(document.getElementById("recordModal")).show();
+            // Show decrypt button in popup
+            showRecordDetailsPopup(data);
         })
         .catch(err => {
-            document.getElementById("verifyStatus").innerText = "❌ Error fetching record";
+            hideLoadingPopup();
+            showPopup('error', 'Error', 'Failed to fetch record: ' + err.message);
         });
+}
+
+function showRecordDetailsPopup(data) {
+    const overlay = document.getElementById('popupOverlay');
+    const titleText = document.getElementById('popupTitleText');
+    const messageText = document.getElementById('popupMessage');
+    const icon = document.getElementById('popupIcon');
+    const dataContainer = document.getElementById('popupDataContainer');
+    const footer = document.querySelector('.popup-footer');
+
+    titleText.textContent = 'IoT Record Details';
+    icon.className = 'popup-icon success bi bi-shield-check';
+    
+    messageText.innerHTML = '<strong>Blockchain Verification: ✓ Verified</strong><p style="margin-top: 10px;">Record integrity confirmed on blockchain. Decrypt to view sensor data.</p>';
+
+    dataContainer.innerHTML = '<div class="popup-data">';
+    dataContainer.innerHTML += `<div class="popup-data-item">
+        <span class="popup-data-label">IPFS CID:</span>
+        <span class="popup-data-value" style="font-size: 12px;">${data.cid}</span>
+    </div>`;
+    dataContainer.innerHTML += `<div class="popup-data-item">
+        <span class="popup-data-label">Blockchain TX:</span>
+        <span class="popup-data-value" style="font-size: 12px;">${data.tx_hash}</span>
+    </div>`;
+    dataContainer.innerHTML += `<div class="popup-data-item">
+        <span class="popup-data-label">Account:</span>
+        <span class="popup-data-value" style="font-size: 12px;">${data.account_address}</span>
+    </div>`;
+    dataContainer.innerHTML += `<div class="popup-data-item">
+        <span class="popup-data-label">Access Time:</span>
+        <span class="popup-data-value">${data.access_time_taken} s</span>
+    </div>`;
+    dataContainer.innerHTML += `<div class="popup-data-item">
+        <span class="popup-data-label">Hash Matched:</span>
+        <span class="popup-data-value">${data.hash_matched ? '✓ Yes' : '✗ No'}</span>
+    </div>`;
+    dataContainer.innerHTML += '</div>';
+
+    footer.innerHTML = `
+        <button class="popup-btn popup-btn-secondary" onclick="closePopup()">Close</button>
+        <button class="popup-btn popup-btn-success" onclick="decryptData()">🔓 Decrypt Data</button>
+    `;
+
+    overlay.classList.add('show');
 }
 
 function decryptData() {
     if (!encryptedPayload) return;
+
+    showLoadingPopup('Decrypting Data');
 
     fetch(`/decrypt-record/`, {
         method: "POST",
@@ -152,10 +206,22 @@ function decryptData() {
     })
     .then(res => res.json())
     .then(data => {
-        document.getElementById("decryptedData").innerText = JSON.stringify(data, null, 4);
+        hideLoadingPopup();
+        
+        // Format decrypted data for display
+        const displayData = {
+            'Title': data.title,
+            'Temperature': data.temperature + ' °C',
+            'Humidity': data.humidity + ' %',
+            'Air Pressure': data.air_pressure + ' hPa',
+            'DateTime': data.datetime,
+        };
+
+        showPopup('success', '🔓 Data Decrypted', 'Successfully decrypted sensor data from IPFS', displayData);
     })
     .catch(err => {
-        document.getElementById("decryptedData").innerText = "❌ Decryption failed";
+        hideLoadingPopup();
+        showPopup('error', 'Decryption Failed', 'Unable to decrypt the data: ' + err.message);
     });
 }
 

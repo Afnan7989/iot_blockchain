@@ -50,6 +50,214 @@
             background: #0072ff;
             color: #fff;
         }
+
+        /* ================= POPUP NOTIFICATION STYLES ================= */
+        .popup-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1040;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .popup-overlay.show {
+            display: flex;
+        }
+
+        .popup-content {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            max-height: 80vh;
+            overflow-y: auto;
+            animation: slideIn 0.3s ease-out;
+            position: relative;
+            color: #333;
+        }
+
+        .popup-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .popup-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .popup-close {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .popup-close:hover {
+            color: #333;
+        }
+
+        .popup-body {
+            margin-bottom: 20px;
+        }
+
+        .popup-message {
+            font-size: 16px;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .popup-data {
+            background: #f8f9fa;
+            border-left: 4px solid #00c6ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+
+        .popup-data-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 14px;
+        }
+
+        .popup-data-item:last-child {
+            border-bottom: none;
+        }
+
+        .popup-data-label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .popup-data-value {
+            color: #00c6ff;
+            word-break: break-all;
+            text-align: right;
+            flex: 1;
+            margin-left: 15px;
+        }
+
+        .popup-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            padding-top: 15px;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        .popup-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .popup-btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .popup-btn-success:hover {
+            background: #218838;
+        }
+
+        .popup-btn-error {
+            background: #dc3545;
+            color: white;
+        }
+
+        .popup-btn-error:hover {
+            background: #c82333;
+        }
+
+        .popup-btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .popup-btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .popup-icon {
+            font-size: 24px;
+        }
+
+        .popup-icon.success {
+            color: #28a745;
+        }
+
+        .popup-icon.error {
+            color: #dc3545;
+        }
+
+        .popup-icon.info {
+            color: #00c6ff;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #00c6ff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 
@@ -76,6 +284,122 @@
 <footer class="text-center py-3">
     <small>© 2026 Blockchain + IoT Proof of Concept | Secure Data Transactions</small>
 </footer>
+
+<!-- ================= POPUP NOTIFICATION ================= -->
+<div id="popupOverlay" class="popup-overlay">
+    <div class="popup-content">
+        <div class="popup-header">
+            <h2 class="popup-title">
+                <span id="popupIcon" class="popup-icon"></span>
+                <span id="popupTitleText"></span>
+            </h2>
+            <button class="popup-close" onclick="closePopup()">&times;</button>
+        </div>
+
+        <div class="popup-body">
+            <p id="popupMessage" class="popup-message"></p>
+            <div id="popupDataContainer"></div>
+        </div>
+
+        <div class="popup-footer">
+            <button class="popup-btn popup-btn-secondary" onclick="closePopup()">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showPopup(type, title, message, data = null) {
+        const overlay = document.getElementById('popupOverlay');
+        const titleText = document.getElementById('popupTitleText');
+        const messageText = document.getElementById('popupMessage');
+        const icon = document.getElementById('popupIcon');
+        const dataContainer = document.getElementById('popupDataContainer');
+
+        // Set title
+        titleText.textContent = title;
+
+        // Set message
+        messageText.textContent = message;
+
+        // Set icon and styling
+        if (type === 'success') {
+            icon.className = 'popup-icon success bi bi-check-circle-fill';
+        } else if (type === 'error') {
+            icon.className = 'popup-icon error bi bi-exclamation-circle-fill';
+        } else {
+            icon.className = 'popup-icon info bi bi-info-circle-fill';
+        }
+
+        // Clear and populate data if provided
+        dataContainer.innerHTML = '';
+        if (data && Object.keys(data).length > 0) {
+            dataContainer.innerHTML = '<div class="popup-data">';
+            for (const [key, value] of Object.entries(data)) {
+                const formattedKey = key
+                    .replace(/_/g, ' ')
+                    .replace(/\b\w/g, l => l.toUpperCase());
+                
+                let displayValue = value;
+                if (typeof value === 'object') {
+                    displayValue = JSON.stringify(value, null, 2);
+                }
+
+                dataContainer.innerHTML += `
+                    <div class="popup-data-item">
+                        <span class="popup-data-label">${formattedKey}:</span>
+                        <span class="popup-data-value">${displayValue}</span>
+                    </div>
+                `;
+            }
+            dataContainer.innerHTML += '</div>';
+        }
+
+        overlay.classList.add('show');
+    }
+
+    function closePopup() {
+        const overlay = document.getElementById('popupOverlay');
+        overlay.classList.remove('show');
+    }
+
+    // Close popup when clicking overlay
+    document.getElementById('popupOverlay').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closePopup();
+        }
+    });
+
+    // Close popup with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closePopup();
+        }
+    });
+
+    function showLoadingPopup(title = 'Processing') {
+        const overlay = document.getElementById('popupOverlay');
+        const titleText = document.getElementById('popupTitleText');
+        const messageText = document.getElementById('popupMessage');
+        const icon = document.getElementById('popupIcon');
+        const dataContainer = document.getElementById('popupDataContainer');
+        const footer = document.querySelector('.popup-footer');
+
+        titleText.textContent = title;
+        messageText.innerHTML = '<div class="loader"></div><p style="text-align: center; color: #666;">Please wait...</p>';
+        icon.className = 'popup-icon info bi bi-hourglass-split';
+        dataContainer.innerHTML = '';
+        footer.style.display = 'none';
+
+        overlay.classList.add('show');
+    }
+
+    function hideLoadingPopup() {
+        const footer = document.querySelector('.popup-footer');
+        footer.style.display = 'flex';
+    }
+</script>
 
 </body>
 </html>
